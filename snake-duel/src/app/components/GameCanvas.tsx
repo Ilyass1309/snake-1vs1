@@ -412,11 +412,9 @@ export default function GameCanvas() {
     {/* HUD / Panneau simplifié droite */}
   <div className="card p-4 flex flex-col gap-3 relative self-stretch justify-center mt-4">
         <div className="flex justify-center gap-2 mt-1">
-          {state.running ? (
-            <button onClick={() => { engine.stop(); }} className="modern-btn secondary">Pause</button>
-          ) : hasPlayedOnce && !state.winner ? (
+          {(!state.running && hasPlayedOnce && !state.winner) && (
             <button onClick={() => { engine.start(); }} className="modern-btn">Reprendre</button>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
