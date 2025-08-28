@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
     }
     await saveFile(current);
     return new Response(JSON.stringify(current), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'Save failed', detail: String(e?.message || e) }), { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'unknown';
+    return new Response(JSON.stringify({ error: 'Save failed', detail: msg }), { status: 500 });
   }
 }

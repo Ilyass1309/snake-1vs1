@@ -219,7 +219,6 @@ function chooseLevel4(state: GameState): Direction {
 
   // Scoring multi-critères
   const safeNodes = base.filter(b=>b.safe);
-  const bestFoodDist = safeNodes.length ? Math.min(...safeNodes.map(b=>b.dist)) : currentFoodDist;
   // Moyenne espace pour pénaliser coups qui contractent trop
   const avgSpace = safeNodes.length ? safeNodes.reduce((a,b)=>a+b.space,0)/safeNodes.length : 0;
   for (const n of base) {

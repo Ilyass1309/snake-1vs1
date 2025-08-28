@@ -84,7 +84,15 @@ export default function GameCanvas() {
   // Abonnement état
   useEffect(() => {
   const unsubscribe = engine.subscribe(setState);
-  const unEnd = engine.onEndGame((st, lvl) => { if (st.winner) { const saved = recordGameResult(lvl, st.winner as any); setAiStatsSnapshot(saved); } });
+  const unEnd = engine.onEndGame((st, lvl) => {
+    if (st.winner) {
+      const w = st.winner === 'player' || st.winner === 'ai' || st.winner === 'draw' ? st.winner : null;
+      if (w) {
+        const saved = recordGameResult(lvl, w);
+        setAiStatsSnapshot(saved);
+      }
+    }
+  });
     // Restaure vitesse depuis localStorage
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('snakeSpeed') : null;

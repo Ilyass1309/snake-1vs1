@@ -42,8 +42,9 @@ export async function POST(req: NextRequest) {
     if (winner === 'ai') stats.levels[lvlKey].wins += 1;
     await save(stats);
     return new Response(JSON.stringify({ ok:true, stats }), { status: 200, headers: { 'Content-Type':'application/json' } });
-  } catch (e:any) {
-    return new Response(JSON.stringify({ error: 'Increment failed', detail: String(e?.message || e) }), { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'unknown';
+    return new Response(JSON.stringify({ error: 'Increment failed', detail: msg }), { status: 500 });
   }
 }
 
