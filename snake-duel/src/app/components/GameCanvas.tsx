@@ -28,6 +28,7 @@ export default function GameCanvas() {
   const [winFlash, setWinFlash] = useState({ player: false, ai: false });
   const [aiStatsSnapshot, setAiStatsSnapshot] = useState(()=>loadAIStats());
   const [showLevel4Congrats, setShowLevel4Congrats] = useState(false);
+  const [showLevel5Congrats, setShowLevel5Congrats] = useState(false);
   const lastGameAiLevelRef = useRef(aiLevel);
   // winrate UI retirée
   // plus de position absolue pour le panneau winrate
@@ -74,10 +75,14 @@ export default function GameCanvas() {
     }
   }, [state.winner, state.running]);
 
-  // Déclenche popup spéciale si joueur bat niveau 4
+  // Déclenche popup spéciale si joueur bat niveau 4 ou 5
   useEffect(() => {
-    if (state.winner === 'player' && lastWinnerRef.current === 'player' && lastGameAiLevelRef.current === 4) {
-      setShowLevel4Congrats(true);
+    if (state.winner === 'player' && lastWinnerRef.current === 'player') {
+      if (lastGameAiLevelRef.current === 4) {
+        setShowLevel4Congrats(true);
+      } else if (lastGameAiLevelRef.current === 5) {
+        setShowLevel5Congrats(true);
+      }
     }
   }, [state.winner]);
 
@@ -329,8 +334,8 @@ export default function GameCanvas() {
           <span className="band-title">Stats IA</span>
         </div>
         <div className="band-section" style={{gap:'.75rem'}}>
-          {[1,2,3,4].map(lvl => {
-            const data = aiStatsSnapshot.levels[String(lvl) as '1'|'2'|'3'|'4'] || { games:0, wins:0 };
+          {[1,2,3,4,5].map(lvl => {
+            const data = aiStatsSnapshot.levels[String(lvl) as '1'|'2'|'3'|'4'|'5'] || { games:0, wins:0 };
             const wr = computeWinrate(data);
             return (
               <div key={lvl} style={{display:'flex', flexDirection:'column', gap:'.35rem'}}>
@@ -426,7 +431,7 @@ export default function GameCanvas() {
         <h2>Bienvenue dans Snake Duel</h2>
         <p>Affronte l'IA dans un duel de serpents. Mange la nourriture pour grandir et évite murs et collisions. Survis plus longtemps que l'adversaire.</p>
         <p><b>Contrôles :</b> Flèches ou ZQSD pour diriger ton serpent.</p>
-        <p>Tu peux ajuster la vitesse et choisir le niveau d'IA (1 à 4) dans les paramètres.</p>
+        <p>Tu peux ajuster la vitesse et choisir le niveau d'IA (<b>1 à 5</b>) dans les paramètres.</p>
         <div className="under-actions mt-3" style={{justifyContent:'center'}}>
           <button className="btn-lg btn-start" onClick={() => { console.log('[DEBUG] Intro fermée'); setShowIntro(false); setAiStatsSnapshot(loadAIStats()); }}>D'accord</button>
         </div>
@@ -439,12 +444,27 @@ export default function GameCanvas() {
         <div className="modal" style={{maxWidth:560}}>
           <button className="close-btn" aria-label="Fermer" onClick={() => setShowLevel4Congrats(false)}>×</button>
           <h2 style={{fontSize:'1.9rem'}}>Bravo !</h2>
-          <p style={{marginTop:'0.5rem'}}>Tu as vaincu l'IA <b>niveau 4</b>, son niveau le plus élevé actuel.</p>
-          <p>Sa stratégie évalue désormais l'espace libre, évite les coins et anticipe certains pièges – mais tu as réussi à la battre.</p>
+          <p style={{marginTop:'0.5rem'}}>Tu as vaincu l'IA <b>niveau 4</b>.</p>
+          <p>Sa stratégie évalue l'espace libre, évite les coins et anticipe certains pièges – mais tu as réussi à la battre.</p>
           <p style={{opacity:.8}}>Tu peux continuer à rejouer pour consolider ta domination ou descendre le niveau pour entraîner ta régularité.</p>
           <div className="under-actions mt-4" style={{justifyContent:'center'}}>
             <button className="btn-lg btn-start" onClick={() => { setShowLevel4Congrats(false); engine.reset(); engine.start(); }}>Rejouer</button>
             <button className="modern-btn secondary" style={{padding:'0.55em 1.2em'}} onClick={() => setShowLevel4Congrats(false)}>Fermer</button>
+          </div>
+        </div>
+      </div>
+    )}
+    {showLevel5Congrats && (
+      <div className="modal-backdrop" style={{zIndex:120}}>
+        <div className="modal" style={{maxWidth:560}}>
+          <button className="close-btn" aria-label="Fermer" onClick={() => setShowLevel5Congrats(false)}>×</button>
+          <h2 style={{fontSize:'1.9rem'}}>Incroyable !</h2>
+          <p style={{marginTop:'0.5rem'}}>Tu as vaincu l'IA <b>niveau 5</b>, le niveau le plus difficile !</p>
+          <p>Ce niveau utilise toutes les stratégies précédentes et anticipe encore mieux tes mouvements. Peu de joueurs y parviennent !</p>
+          <p style={{opacity:.8}}>Relève le défi à nouveau ou tente d'améliorer ton score sur les autres niveaux.</p>
+          <div className="under-actions mt-4" style={{justifyContent:'center'}}>
+            <button className="btn-lg btn-start" onClick={() => { setShowLevel5Congrats(false); engine.reset(); engine.start(); }}>Rejouer</button>
+            <button className="modern-btn secondary" style={{padding:'0.55em 1.2em'}} onClick={() => setShowLevel5Congrats(false)}>Fermer</button>
           </div>
         </div>
       </div>
