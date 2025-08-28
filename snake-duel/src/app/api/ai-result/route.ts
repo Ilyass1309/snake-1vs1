@@ -34,23 +34,8 @@ async function saveFile(stats: AIStatsFile) {
 
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { aiLevel, winner } = body || {};
-    const lvlKey = String(aiLevel) as LevelKey;
-    if (!LEVELS.includes(lvlKey) || !['player','ai','draw'].includes(winner)) {
-      return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
-    }
-    const stats = await loadFile();
-    if (!stats.levels[lvlKey]) stats.levels[lvlKey] = { games:0, wins:0 };
-    stats.levels[lvlKey].games += 1;
-    if (winner === 'ai') stats.levels[lvlKey].wins += 1;
-    await saveFile(stats);
-    return new Response(JSON.stringify({ ok:true, stats }), { status: 200, headers: { 'Content-Type':'application/json' } });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'unknown';
-    return new Response(JSON.stringify({ error: 'Increment failed', detail: msg }), { status: 500 });
-  }
+  // Désactivé pour déploiement Vercel : ne fait rien, retourne juste ok
+  return new Response(JSON.stringify({ ok:true, disabled:true }), { status: 200, headers: { 'Content-Type':'application/json' } });
 }
 
 
