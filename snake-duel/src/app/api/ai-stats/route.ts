@@ -1,61 +1,59 @@
 import { NextRequest } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { PrismaClient } from '@prisma/client';
 
-export const dynamic = 'force-dynamic'; // ensure not cached
+export const dynamic = 'force-dynamic';
 
-interface AILevelStats { games: number; wins: number; }
-interface AIStatsFile { levels: Record<string, AILevelStats>; lastUpdated: string | null; }
-
-const FILE_PATH = path.join(process.cwd(), 'data', 'ai-stats.json');
+const prisma = new PrismaClient();
 const LEVEL_KEYS = ['1','2','3','4','5'] as const;
+type LevelKey = typeof LEVEL_KEYS[number];
 
-async function loadFile(): Promise<AIStatsFile> {
-  try {
-    const raw = await fs.readFile(FILE_PATH, 'utf8');
-    const data = JSON.parse(raw) as AIStatsFile;
-    for (const k of LEVEL_KEYS) {
-      if (!data.levels[k]) data.levels[k] = { games:0, wins:0 };
-    }
-    return data;
-  } catch {
-  return { levels: { '1': { games:0, wins:0 }, '2': { games:0, wins:0 }, '3': { games:0, wins:0 }, '4': { games:0, wins:0 }, '5': { games:0, wins:0 } }, lastUpdated: null };
+function mapRow(row: any) {
+  if (!row) return { levels: {}, lastUpdated: null };
+  const levels: Record<string, { games: number; wins: number }> = {};
+  for (const k of LEVEL_KEYS) {
+    levels[k] = {
+      games: row[`level${k}Games`] ?? 0,
+      wins: row[`level${k}Wins`] ?? 0
+    };
   }
+  return { levels, lastUpdated: row.lastUpdated ? new Date(row.lastUpdated).toISOString() : null };
 }
 
-async function saveFile(stats: AIStatsFile) {
-  stats.lastUpdated = new Date().toISOString();
-  await fs.writeFile(FILE_PATH, JSON.stringify(stats, null, 2), 'utf8');
+async function ensureRow() {
+  const row = await prisma.aiStats.findUnique({ where: { id: 'global' } });
+  if (!row) await prisma.aiStats.create({ data: { id: 'global' } });
 }
 
 export async function GET() {
-  const stats = await loadFile();
-  return new Response(JSON.stringify(stats), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  await ensureRow();
+  const row = await prisma.aiStats.findUnique({ where: { id: 'global' } });
+  return new Response(JSON.stringify(mapRow(row)), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const incoming = (await req.json()) as Partial<AIStatsFile> | undefined;
-    if (!incoming || typeof incoming !== 'object') {
+    const incoming = (await req.json()) as any;
+    if (!incoming || typeof incoming !== 'object' || !incoming.levels) {
       return new Response(JSON.stringify({ error: 'Invalid body' }), { status: 400 });
     }
-    const current = await loadFile();
-    // Merge additive (on ajoute les nouvelles valeurs si supérieures)
-    if (incoming.levels) {
-      for (const k of LEVEL_KEYS) {
-        const inc = incoming.levels[k];
-        if (inc) {
-          const cur = current.levels[k] || { games:0, wins:0 };
-          // On prend la valeur max (au cas où client renvoie déjà cumulée) ou on additionne ? Ici on choisit max pour éviter double comptage.
-          current.levels[k] = {
-            games: Math.max(cur.games, inc.games),
-            wins: Math.max(cur.wins, inc.wins)
-          };
-        }
+    await ensureRow();
+    const update: Record<string, any> = { lastUpdated: new Date() };
+    for (const k of LEVEL_KEYS) {
+      const inc = incoming.levels[k];
+      if (inc && typeof inc.games === 'number' && typeof inc.wins === 'number') {
+        // merge via max like before
+        // need current values
+        const row = await prisma.aiStats.findUnique({ where: { id: 'global' }, select: { [`level${k}Games`]: true, [`level${k}Wins`]: true } as any });
+        const curGames = (row as any)?.[`level${k}Games`] ?? 0;
+        const curWins = (row as any)?.[`level${k}Wins`] ?? 0;
+        const gField = `level${k}Games`;
+        const wField = `level${k}Wins`;
+        if (inc.games > curGames) update[gField] = inc.games; // set absolute
+        if (inc.wins > curWins) update[wField] = inc.wins;
       }
     }
-    await saveFile(current);
-    return new Response(JSON.stringify(current), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const saved = await prisma.aiStats.update({ where: { id: 'global' }, data: update });
+    return new Response(JSON.stringify(mapRow(saved)), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'unknown';
     return new Response(JSON.stringify({ error: 'Save failed', detail: msg }), { status: 500 });

@@ -1,0 +1,25 @@
+// Prisma schema for AI stats
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AiStats {
+  id           String   @id @default("global")
+  level1Games  Int      @default(0)
+  level1Wins   Int      @default(0)
+  level2Games  Int      @default(0)
+  level2Wins   Int      @default(0)
+  level3Games  Int      @default(0)
+  level3Wins   Int      @default(0)
+  level4Games  Int      @default(0)
+  level4Wins   Int      @default(0)
+  level5Games  Int      @default(0)
+  level5Wins   Int      @default(0)
+  lastUpdated  DateTime? @db.Timestamptz(6)
+}
